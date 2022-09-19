@@ -1,0 +1,55 @@
+/* 2 - INTERMEDIÁRIO  
+proc sql (right, left, inner, selects)
+ifs else, do, else if, not, and, or, do while, do until 
+https://eufacoprogramas.com/sql-consultas-com-join/ 
+*/ 
+
+/* AS BASES PROFITS E AIRLINE POSSUEM VARIÁVEIS YEAR*/ 
+
+ 
+/* LEFT JOIN  - PUXANDO PROFITS DE ANOS BASE
+tudo que tem no A e tem no B */ 
+
+proc sql;
+create table WORK.AIRLINEPROFITS as
+    select a.*, b.*
+    from bases.profits as a
+    left join bases.profits as b
+    on a.YEAR = b.YEAR;
+run;
+
+DATA WORK.AIRLINEPROFITS; 
+SET WORK.AIRLINEPROFITS;
+KEEP YEAR PROFITS;
+RUN; 
+
+/* RIGHT JOIN - TUDO QUE FOR YEAR DA BASE AIRLINES, TRAZER PARA PROFITS EM UM NOVO DATASET
+
+/* TUDO QUE TEM NO B E TEM NO A */ 
+proc sql; 
+create table WORK.PROFITSFROMAIRLINES as 
+    select a.*, b.*
+    from bases.airline as a
+    RIGHT JOIN bases.profits as b
+    on a.YEAR = b.YEAR; 
+run;
+
+/* TUDO QUE TEM NO B E QUE TEM NO A, MAS DEVEM SER OU NÃO ELIMINADOS BASTA USAR NULL OU NOT NULL */ 
+proc sql; 
+create table WORK.PROFITSFROMAIRLINES_V2 as 
+    select a.*, b.*
+    from bases.airline as a
+    RIGHT JOIN bases.profits as b
+    on a.YEAR = b.YEAR
+    WHERE A.YEAR IS NOT NULL; 
+run;
+
+/* INNER JOIN - OBTER SOMENTE O QUE TEM NO A E NO B AO MESMO TEMPO *COLOCADO UM FILTRO PARA DISTINGUIR BASES APENAS */ 
+proc sql; 
+create table WORK.INNERPROFITS as 
+    select a.*, b.*
+    from bases.airline as a
+    INNER JOIN  bases.profits as b
+    on a.YEAR = b.YEAR
+    WHERE A.YEAR BETWEEN 1960 AND 1970; 
+run;
