@@ -1,0 +1,18 @@
+/* DESAFIO - CRIAR MADRO AAMM DDMMYYYY  YYYY */
+
+/*1 PASSO QUAIS FUNÇÕES DATE POSSUEM NO SAS 
+https://v8doc.sas.com/sashtml/lrcon/zenid-63.htm 
+/*dia de hoje - date () */
+
+/*primeiro dia do mês, alterar o valor do 0 modifica o mes para frente ou para trás, aqui temos como referência o primeiro dia do mês passado*/ 
+
+%let DDMMYYYY=%sysfunc(intnx(month, %sysfunc(today()), -1), DDMMYY10.);
+%put &DDMMYYYY.;
+
+/*ultimo  dia do mês, alterar o valor do 0 modifica o mes para frente ou para trás, aqui temos como referência o primeiro dia do mês passado*/ 
+%let DDMMYYYYEND=%sysfunc(intnx(month, %sysfunc(today()),-1,e), DDMMYY10.);
+%put &DDMMYYYYEND.;
+
+/*ultimo mês mmm/aa*/ 
+%let MMMYY=%sysfunc(intnx(month, %sysfunc(today()), -1), monyy5.);
+%put &MMMYY.;
