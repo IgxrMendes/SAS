@@ -16,3 +16,15 @@ https://v8doc.sas.com/sashtml/lrcon/zenid-63.htm
 /*ultimo mês mmm/aa*/ 
 %let MMMYY=%sysfunc(intnx(month, %sysfunc(today()), -1), monyy5.);
 %put &MMMYY.;
+
+/*ultimo mês mmm/aa*/ 
+%let MMMYY=%sysfunc(intnx(month, %sysfunc(today()), -1), monyy5.);
+%put &MMMYY.;
+
+DATA WORK.BASETESTE_&MMMYY.;
+SET BASES.PROFITS;
+DT_INICIO = "&DDMMYYYY.";
+DT_FIM = "&DDMMYYYYEND.";
+MES_REF = "&MMMYY.";
+RUN; 
+
