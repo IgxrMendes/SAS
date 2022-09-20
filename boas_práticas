@@ -1,0 +1,153 @@
+/* 20/09/2022 - esse código é referente o workshop da jump label sobre Marketing Automation e boas práticas em SAS. 
+
+o objetivo principal consiste em estudar e revisar os conceitos usados no sas e aprender coisas novas reciclando o conhecimento. */ 
+
+/* Melhores Práticas e automatizações em SAS
+﻿Published on 22/09/2020 by Felipe Palmeri 
+
+Ideia de trabalhar e um ambiente instável. sem ter que refazer processos - começa-se com um sumário do código para entender o que está
+acontecendo. 
+
+trabalhar com comentários maiores e mais explicativos pode trazer ganhos de entendimento dos processos e saber para o que cada coisa serve:
+principais pontos positivos de trabalhar dessa maneira: 
+
+- facilita o entendimento do código 
+- Rastrear movimentações 
+- Facilita a manutenção futura. */ 
+
+*-----------------------------------------------------------------------------------------------------------------------------------------*;
+* / Nome do Programa: Treinamento de boas práticas  / 
+  Responsável: Igor Bezerra Mendes
+  Objetivo: o objetivo principal consiste em estudar e revisar os conceitos usados no sas e aprender coisas novas reciclando o conhecimento.
+  Data: 20/09/2020
+* ----------------------------------------------------------------------------------------------------------------------------------------*;
+/* eventuais alterações */ 
+
+* Responsável: Igor Mendes
+* Alteração: definir outras prioridades 
+  Data = 20/09/2020  */ 
+ 
+ 
+/* importante mencionar cada etapa do código, por exemplo: */;
+
+
+
+/* alguns dos parâmetros iniciais que podem ser colocados no inicio do código para ajudar na otimização de processos
+
+option compress = yes -> otimiza em média de 2tb e faz com que as bases sejam feitas em tamanhos menores MAS - PODE AUMENTAR em casos de muitas
+variáveis numéricas ou caracteres sempre preenchidos. 
+reuse = yes -> reutiliza espaços da base do sas.
+valid var name = yes -> elimina caracteres especiais
+errorabend ->  controlar o processo. parar o processo onde tiver o erro sem ficar sobrepondo as bases*/ 
+
+option compress = yes reuse= yes validvarname = any
+errorabend
+;
+
+/* Importanto diretórios de referência */ ;
+libname bases "/home/u61281657/bases";
+
+/* boas práticas com variáveis
+ -> tamanho máximo de 32 caracteres 
+ -> não pode iniciar por número e underscore e nem conter espaços
+ -> utilizar o mesmo padrão para nomeclatura das bases
+ -> um bom padrão é colocar nos 2 primeiros caracteres uma identificação base da variável
+*/ 
+
+/* criando uma macro exemplo com uma variável no padrão em um diretório ficticio e depois usando ela como uma lib ficticia */ 
+%let dir_planilhas =/home/u61281657/Planilhas;
+%put &dir_planilhas.
+/*-----------------------------------------------------------------------------------------------------------------------------------------*;
+OTIMIZAÇÃO E PERFORMANCE 
+
+KEEP E DROP  entre parenteses para otimizar sempre */; 
+
+data work.YR_AIRLINES; 
+	set bases.airline
+	(KEEP= YEAR L);
+
+RUN; 
+
+data work.LOSSES_AIRLINES; 
+	set bases.airline
+	(DROP= Y W R K);
+
+RUN; 
+
+
+/*-----------------------------------------------------------------------------------------------------------------------------------------*;
+OTIMIZAÇÃO E PERFORMANCE 
+
+tabelas com compress, pode ser uma alternativa a variável global option compress */ 
+
+proc sql;
+create table work.airlines_compress (compress=yes) as
+			select * 
+			from bases.airline;
+			
+			
+
+/*-----------------------------------------------------------------------------------------------------------------------------------------*;
+melhor maneira de ver o conteúdo criado pelo sas  */ 
+
+proc contents data = work.airlines_compress varnum; run; 
+
+/* proc sql vs Merge 
+inner join vs merge  - o ganho é melhor no merge em bases com mais de 2 milhões de dados
+NÃO RESOLVE PROBLEMAS DE CRUZAMENTO n.n
+
+em casos de LEFT, RIGHT JOIN O CRUZAMENTO É MELHOR NO PROC SQL usando on, wheres */
+
+/*-----------------------------------------------------------------------------------------------------------------------------------------*;
+primeiro é realizado um sort entre duas tabelas usando um campo chave e depois o merge */ 
+proc sort data = bases.airline;
+BY YEAR;
+RUN; 
+
+PROC SORT DATA = bases.profits;
+by YEAR;
+RUN; 
+
+DATA WORK.BASE_AIRLINE_PROFITS; 
+MERGE BASES.AIRLINE (IN = A)
+	  BASES.PROFITS (IN = B)
+	  ;
+	  BY YEAR;
+	  IF A AND B; 
+	  RUN; 
+	  
+/*-----------------------------------------------------------------------------------------------------------------------------------------*;
+processo controlado */ 
+	  
+
+
+*-----------------------------------------------------------------------------------------------------------------------------------------*;
+* UTILIZANDO TABELAS SAS VIA ORACLE COM LINGUAGEM SQL *
+* RECOMENDAÇÃO -> CRIAR VARIAVEIS GLOBAIS COM ACESSOS AO SISTEMA E INICIAR A PROGRAMAÇÃO *usuarios e senhas ficticios* 
+ PARA SEGUIR COM UMA MELHOR OTIMIZAÇÃO DE PROCESSOS, EVITAR USAR LINGUAGEM SAS QUANDO SE TRATA DE ORACLE, UCASES POR EXEMPLO
+ APLICAR UMA LINGUAGEM SQL PODE TRAZER UMA MELHOR PERFORMANCE SE TRATANDO DESSAS INFORMAÇÕES.
+* ----------------------------------------------------------------------------------------------------------------------------------------*;
+/* 
+%let vUserServer = user = 'bi_read' password = 'bi_read' path = 'AESABI';
+
+/* O PASSTHROUGHT SERVE PARA EVITAR O PROCESSO DE AIO DENTRO DO SAS, TRAZENDO AS INFORMAÇÕES DO ORACLE SEM TRATAMENTOS PRÉVIOS */
+
+/* PROC SQL; 
+CONNECT TO ORACLE(&VUSERSERVER.);
+CREATE TABLE < LIBNAME > . <NOME DA BASE SAS > AS 
+SELECT * FROM CONNECTION TO ORACLE
+( 
+SELECT 
+
+/* INSERIR COMANDOS
+INSERIR COMANDOS
+INSERIR COMANDOS
+INSERIR COMANDOS
+INSERIR COMANDOS */ 
+
+/* FROM < LIBNAME (OPCIONAL) >.< NOME DA BASE ORACLE > 
+WHERE < CONDIÇÃO > 
+); */ 
+	/* DISCONNECT FROM ORACLE;
+	QUIT; */ 
+*/ 
