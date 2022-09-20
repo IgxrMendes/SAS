@@ -1,0 +1,30 @@
+*-----------------------------------------------------------------------------------------------------------------------------------------*;
+* UTILIZANDO TABELAS SAS VIA ORACLE COM LINGUAGEM SQL *
+* RECOMENDAÇÃO -> CRIAR VARIAVEIS GLOBAIS COM ACESSOS AO SISTEMA E INICIAR A PROGRAMAÇÃO *usuarios e senhas ficticios* 
+ PARA SEGUIR COM UMA MELHOR OTIMIZAÇÃO DE PROCESSOS, EVITAR USAR LINGUAGEM SAS QUANDO SE TRATA DE ORACLE, UCASES POR EXEMPLO
+ APLICAR UMA LINGUAGEM SQL PODE TRAZER UMA MELHOR PERFORMANCE SE TRATANDO DESSAS INFORMAÇÕES.
+* ----------------------------------------------------------------------------------------------------------------------------------------*;
+/*
+%let vUserServer = user = 'bi_read' password = 'bi_read' path = 'AESABI';
+
+/* O PASSTHROUGHT SERVE PARA EVITAR O PROCESSO DE AIO DENTRO DO SAS, TRAZENDO AS INFORMAÇÕES DO ORACLE SEM TRATAMENTOS PRÉVIOS */
+
+/* PROC SQL; 
+CONNECT TO ORACLE(&VUSERSERVER.);
+CREATE TABLE < LIBNAME > . <NOME DA BASE SAS > AS 
+SELECT * FROM CONNECTION TO ORACLE
+( 
+SELECT 
+
+/* INSERIR COMANDOS
+INSERIR COMANDOS
+INSERIR COMANDOS
+INSERIR COMANDOS
+INSERIR COMANDOS */ 
+
+/* FROM < LIBNAME (OPCIONAL) >.< NOME DA BASE ORACLE > 
+WHERE < CONDIÇÃO > 
+); */ 
+	/* DISCONNECT FROM ORACLE;
+	QUIT; */ 
+*/ 
