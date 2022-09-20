@@ -1,0 +1,202 @@
+/*-----------------------------------------------------------------------------------------------------------------------------------------
+  Nome do Programa: Processo Controlado 
+  Responsável: Igor Bezerra Mendes
+  Objetivo: evitar perda de tempo rodando novos processos, é criada uma base que informa em qual processo algo deu errado contado a partir
+  de 0 definindo todos os processos que são desejaveis, o ideal é usar sempre processos mais longos para essa finalidade. 
+  o ideal é nunca utilizar esse processo na work. 
+  Data: 20/09/2020
+ ----------------------------------------------------------------------------------------------------------------------------------------*/
+
+		 
+		options compress = yes
+		errorabend  
+		;
+
+/* variáveis globais */ 
+
+%global PNL assunto ctrint num_pc dir_orig dir_log dir_csv
+		res_sn xctrint nctrint nomebase lb arquivo; 
+
+%let PNL = PC;
+
+/* Diretório onde será gerada base */ 
+	
+    %let dir_orig =/home/u61281657/Bases_Teste;
+    %let dir_log =/home/u61281657/Bases_Teste;
+    %let dir_csv =/home/u61281657/Planilhas;
+    
+	LIBNAME local "&dir_orig."; /* <========= onde será gravado o controlador do processo controlado */
+	LIBNAME BASES "&dir_log.";  /* <========= onde será gravado as bases geradas no processo */
+
+%let nomebase= ctr_base_geral_&PNL.; /* <======= MAX 32 caracteres */	
+
+/* -----------------------------------------------------------------------------------------*/
+/* --------------------( INICIO DAS MACROS DO PROCESSO ) -----------------------------------*/
+/* -----------------------------------------------------------------------------------------*/
+
+
+/* #########################################################################################*/
+/* Imprime inforamção na log indicando o dia e o horário de inicio de execução do processo */
+
+%macro inicio;
+		%put;
+		%put ------------------------------------------------------------------------------;
+		%put Processo Iniciado em %sysfunc (date(),weekdate.) às %sysfunc (time(), time5.);
+		%put -----------------------------------------------------------------------------;
+	%put;
+%mend;
+
+/* *************************************************************************************** */
+/* imprime informação na log indicando o dia e o horário  do termino da execução ********* */
+/* *************************************************************************************** */
+
+%macro fim;
+	%put;
+	%put ----------------------------------------------------------------------------------;
+	%put Processo Encerrado em %sysfunc (date(), weekdate.) às %sysfunc(time(), time5.);
+	%put ----------------------------------------------------------------------------------;
+	%put;
+%mend; 
+
+/* *************************************************************************************** */
+/* Verifica existencia do arquivo processo controlado********* */
+/* *************************************************************************************** */
+
+%macro existarq(lb, arquivo);
+	%put &arquivo.;
+	data _null_;
+		dsname="&lb..&arquivo.";
+		Put dsname;
+	 if (exist(dsname))
+	 	then res_sn ="S";
+	 	else res_sn ="N";
+	call symput ("res_sn",res_sn);
+	run; 
+	%put &res_sn.;
+
+%mend existarq;
+
+/* *************************************************************************************** */
+/* Verifica se o arquivo de Controle do Processo Controlado existe para cria-lo caso não exista*/
+/* *************************************************************************************** */
+
+%macro existarq_pc(arquivo);
+	%let dsname=local.&arquivo.;
+	%if %sysfunc (exist(&dsname)) %then
+		%let dsid=;
+	%else
+		%do;
+			data local.&nomebase.;
+			length ctrext_&nomebase. $4.;
+			ctrext_&nomebase. ='0';
+			run;
+	%end; 
+	
+%mend existarq_pc;
+%existarq_pc(&nomebase.);
+
+/* *************************************************************************************** */
+/* macros de controle do processo controlado ********* */
+/* *************************************************************************************** */
+
+%MACRO Controlado_Inicio;
+	%let num_pc=%eval (&num_pc.+1);
+	%put -----> &ctrint  -------> &num_pc;
+%mend Controlado_Inicio; 
+
+%MACRO Controlado_Fim;
+		data _null_;
+		set local.&nomebase.;
+			call symput ("nctrint", compress (ctrext_&nomebase.));
+			run; 
+			%let xctrint = %eval (&nctrint + 1);
+			data local.&nomebase.;
+			set local.&nomebase.;
+			ctrext_&nomebase.=compress("¨xctrint.");
+			call symput ("ctrint", compress (ctrext_&nomebase.));
+			run;
+%mend Controlado_Fim;
+
+/* -----------------------------------------------------------------------------------------*/
+/* ---------------------------( fim das macros de processo ) -------------------------------*/
+/* -----------------------------------------------------------------------------------------*/
+
+
+/* -----------------------------------------------------------------------------------------*/
+/* ---------------------------( INICIO DO PROCESSO CONTROLADO )-----------------------------*/
+/* -----------------------------------------------------------------------------------------*/
+/* -----------------------------------------------------------------------------------------*/
+/* -----------------------------------------------------------------------------------------*/
+
+
+%MACRO PROCESSO_CONTROLADO;
+
+/* ------LEITURA INICIAL DA BASE DE CONTROLE-----------------------------*/
+
+data _NULL_; set local.&nomebase.; call symput("ctrint", COMPRESS (ctrtext_&nomebase.)); run;
+%let num_pc= -1; 
+
+/* ------ 01 - PROCESSO CONTROLADO - INICIO -----------------------------*/
+%Controlado_Inicio; %if &ctrint = &num_pc %then %do;
+										/* inserir o step a Processar */
+										/* CRIANDO UMA BASE DE EXEMPLO COM DADOS DE ALUNOS */
+										
+				%INICIO;
+				DATA BASES.BASE_01;
+				LENGHT CD_ALUNO $4. DS_ALUNO $30. DS_CIDADE $30. DS_UF $2.;
+				CD_ALUNO = "0001"; 	DS_ALUNO = "PAULO ANTUNES";			DS_CIDADE "SÃO PAULO"; 		DS_UF= "SP"; OUTPUT;
+				CD_ALUNO = "0002"; 	DS_ALUNO = "ANA PAULA RIBEIRO";		DS_CIDADE "NITEROI"; 		DS_UF= "RJ"; OUTPUT;
+				CD_ALUNO = "0003"; 	DS_ALUNO = "KARINA DE SOUZA";		DS_CIDADE "LONDRINA"; 		DS_UF= "PR"; OUTPUT;
+				CD_ALUNO = "0004"; 	DS_ALUNO = "PEDRO DA SILVA";		DS_CIDADE "BLUMENAL"; 		DS_UF= "SC"; OUTPUT;
+				CD_ALUNO = "0005"; 	DS_ALUNO = "ROBERTO EULOGIO";		DS_CIDADE "PORTO ALEGRE"; 	DS_UF= "RS"; OUTPUT;
+				RUN; 
+				%FIM;
+				
+%Controlado_Fim; %end; 
+/* PC - FIM ---------------------------------------- */
+
+/* ------ 02 - PROCESSO CONTROLADO - INICIO -----------------------------*/
+%Controlado_Inicio; %if &ctrint = &num_pc %then %do;
+										/* inserir o step a Processar */
+										/* COLOCANDO ALGUNS CRITÉRIOS E CRIANDO OUTRO DATASET */
+					%INICIO;
+					DATA BASES.BASE_02
+					SET BASES.BASE_01;
+					LENGTH STATUS $20.;
+					STATUS = "NÃO APROVADO"
+	 				IF CD_ALUNO IN("0002", "0004", "0005") THEN STATUS= "APROVADO";
+	 				RUN;
+	 				%FIM;
+	 				 
+%Controlado_Fim; %end; 
+/* PC - FIM ---------------------------------------- */
+
+
+/* ------ 03 - PROCESSO CONTROLADO - INICIO -----------------------------*/
+%Controlado_Inicio; %if &ctrint = &num_pc %then %do;
+
+/* ABBEND - AQUI PODE SER FEITO O TESTE DE ERRO DA MACRO OU PARAR ELA
+ OU CONTINUAR COM A MESMA LINHA DE RACIOCINIO DAS MACROS ACIMA PARA NOVOS DATASETS E AFINS ------------ */
+		
+		
+		/* stop; */ 
+		
+		%INICIO
+		DATA BASES.BASE_03;
+		SET BASES.BASE_02;
+		LENGTH STATUS $20.;
+		RUN; 
+		%FIM;
+			
+%Controlado_Fim; %end; 
+/* PC - FIM ---------------------------------------- */
+
+/* ------ FIM DE PROCESSO -----------------------------*/
+
+ data local.&nomebase.; lenght ctrext_&nomebase. $4; ctrext_&nomebase. ='0';run;
+ 
+ %MEND PROCESSO_CONTROLADO;
+ 
+ %processo_controlado; /*chamada do processo */
+
+ 
