@@ -1,0 +1,82 @@
+/* 01_COMPRESS */
+
+data tratamento_xpto;
+ 	/* campo a tratar */ 
+ 	nr_cep = "09910-210 Meu Cep Cadastrado";
+ 			/* Retorna "somente" os "numeros" */
+ 			nr_cep_tratado=compress (nr_cep, "0123456789-", "k"); 
+ 				/* Retorna "sem" os "números" */
+ 				nr_cep_tratado=compress (nr_cep, "0123456789-", "d"); 
+ 					/* retira espaço entre palavras */ 
+ 						nr_cep_sem_espaco=compress(nr_cep);
+run; 
+
+/* 02_DATA */
+
+data exemplo_data_funcao;
+	hoje = today();				format hoje ddmmyy10.;
+	dia= day (hoje);
+	mes= month(hoje);
+	ano= year (hoje);
+	data = mdy(mes,dia,ano); 	format data date9.;
+	run;
+	
+/* 03 tempo */
+	data exemplo_time_funcao;
+	tempo = time();			format tempo time8.;
+	hora  = hour(tempo);
+	minuto = minute(tempo);
+	segundo = second (tempo);
+	run;
+
+/* 04 - data x  tempo */
+	data exemplo_datepart_timepart_funcao;
+	data_tempo=datetime();		format data_tempo datetime25.; 
+	data_=datepart(data_tempo);	format data_	  ddmmyy10.;
+	tempo=timepart(data_tempo);	format tempo 	  time8.;
+	run;
+
+/* 04 INCREMENTAR */
+
+data minha_data;
+	minha_data='28dec2009'd;
+/* incrementa o mês 'incorreto' */
+	mes_1= month (minha_data)+1;
+/* incrementa o mês 'correto' */
+	mes_2= month (INTNX('month', minha_data,1));
+
+/* outros exemplos de Incremento */
+	dia_1 = day(INTNX('day', minha_data, 1));
+	ano_1 = year (INTNX('year', minha_data,1));
+
+	format minha_data ddmmyy10.;
+run; 
+
+
+/*############################################ 
+		05 DIFERENÇA ENTRE DATAS - IMPORTANTE 
+#
+#
+#
+#
+#
+############################################*/
+
+data exemplo_data_diferença;
+	 data_inicial='28dec2009'd;
+	 data_final = '28dec2010'd;
+	 /* diferença em "DIAS" */
+		dia 	= INTCK ('day', data_inicial, data_final);
+	/* 	diferença em "SEMANAS" */
+		semanas = INTCK ('week', data_inicial, data_final);
+	/* 	diferença em "MESES" */
+		neses 	= INTCK ('month', data_inicial, data_final);
+	/* 	diferença em "ANOS" */
+		anos 	= INTCK ('year', data_inicial, data_final);
+		format data_inicial data_final ddmmyy10.;
+run; 
+		
+
+
+
+
