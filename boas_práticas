@@ -3,7 +3,6 @@
 o objetivo principal consiste em estudar e revisar os conceitos usados no sas e aprender coisas novas reciclando o conhecimento. */ 
 
 /* Melhores Práticas e automatizações em SAS
-﻿Published on 22/09/2020 by Felipe Palmeri 
 
 Ideia de trabalhar e um ambiente instável. sem ter que refazer processos - começa-se com um sumário do código para entender o que está
 acontecendo. 
@@ -33,7 +32,7 @@ principais pontos positivos de trabalhar dessa maneira:
 
 
 /* alguns dos parâmetros iniciais que podem ser colocados no inicio do código para ajudar na otimização de processos
-
+#############################################
 option compress = yes -> otimiza em média de 2tb e faz com que as bases sejam feitas em tamanhos menores MAS - PODE AUMENTAR em casos de muitas
 variáveis numéricas ou caracteres sempre preenchidos. 
 reuse = yes -> reutiliza espaços da base do sas.
@@ -47,7 +46,201 @@ errorabend
 /* Importanto diretórios de referência */ ;
 libname bases "/home/u61281657/bases";
 
-/* boas práticas com variáveis
+
+/* CRIANDO UM DATA SET COM FUNÇÕES NATIVAS DO SAS 
+operadores minemônicos #############################################
+EQ = EQUAL
+GE = GREATER OR EQUAL
+GT = GREATER THEN
+LE = LOWER OR EQUAL
+LT = LOWER THEN
+NE = NOT EQUAL
+IN = IN(LISTA, LISTA2, LISTA3)
+
+operadores de tabela #############################################
+KEEP = MANTER NO DATASET KEEP VAR1 VAR 2 VAR 3
+DROP = EXCLUIR DO DATASET  DROP VAR1 VAR2 VAR3
+RETAIN = MANTER VARIAVEIS
+FORMAT = FORMATAR ALGUM DADO - CONSULTE TODOS FORMATOS EM 
+https://documentation.sas.com/doc/en/pgmsascdc/9.4_3.5/leforinforref/n0p2fmevfgj470n17h4k9f27qjag.htm
+
+operadores lógicos  #############################################
+IF (CONDIÇÃO) THEN (DECLARAÇÃO QUANDO VERDADEIRA);
+ELSE (DECLARAÇÃO QUANDO FALSO); 
+
+IF (CONDICAO) THEN (DECLARAÇÃO QUANDO VERDADEIRA);
+ELSE IF (CONDICAO) THEN (DECLARACAO QUANDO VERDADEIRO);
+ELSE (DECLARAÇÃO QUANDO FALSO); 
+
+DO = BLOCO DE DECLARAÇÕES 
+
+IF CONDICAO THEN DO;
+	(DECLARAÇÕES);
+END; 
+ELSE DO; 
+	(DECLARAÇÕES);
+END; */
+
+data work.alunos; 
+	set sashelp.class;
+	/* where age GE 13;   /* pode ser usado o if também */
+	if AGE GE 13 AND SEX = F;
+	DROP AGE SEX; 
+
+/* Criando variáveis */
+		MTS = HEIGHT / 39.37;
+		KGS = WEIGHT / 2.20;
+		IMC = KGS / (MTS * MTS);
+run; 
+
+/* JUNTANDO DATASETS UTILIZANDO DATASTEPS */ 
+DATA ALUNOS; 
+	 SET SASHELP.PRDSAL2 SASHELP.PRDSAL3;
+	 RETAIN SOMA_ACTUAL SOMA_PREDICT;
+	 FORMAT SOMA_ACTUAL SOMA_PREDICT DOLLAR12.2;
+	 SOMA_ACTUAL = SUM(SOMA_ACTUAL + ACTUAL); 
+	 SOMA_PREDICT = SUM(SOMA_PREDICT + PREDICT); 
+	
+	 RUN;
+
+/* ORDENANDO COM PROCSORT 
+
+QUANDO É FEITA UMA ORDENAÇÃO, OS DADOS FÍSICOS ESTÃO SENDO ORDENADOS TODAS ORDENS DO DADOS SÃO ALTERADAS
+PRINCIPAIS CUIDADOS: AMBIENTE COLABORATIVO IMPORTANTE SEMPRE USAR OUTPUT*/
+
+PROC SORT DATA=SASHELP.PRDSAL2 (KEEP=PRODUCT ACTUAL PREDICT) /*Ganho de performance - keep antes de processos */
+	OUT=WORK.PRDSAL2_ORD;
+	BY PRODUCT;
+RUN; 
+
+/* O "BY" sendo utilizado no datastep abaixo cria duas variáveis booleanas;
+variável booleana = 0 ou 1 - falso ou verdadeiro 
+variáveis que o by cria ao fazer uma ordem em um data step
+last.variável e first.variavel
+
+quando for a primeira ocorrencia de um produto a variável vale 1
+quando for a ultima ocorrencia de um produto a variável vale 1
+qualquer outro caso elas são falsas; 
+
+sendo assim, podemos aplicar essas variáveis em uma forma condicional
+
+NESSE RACIOCÍNIO O PROCESSO ABAIXO NÃO SOMA O ACUMULADO DE TODOS PRODUTOS
+E SOMENTE O TOTAL DE CADA PRODUTO
+
+QUANDO A PRIMEIRA VARIÁVEL DE UM NOVO PRODUTO APARECER, ZERE O VALOR DA
+SOMA ACUMULADA PARA REINICIAR O CALCULO 
+
+Por fim é feito um output condicional para demonstrar o total de cada variável.
+Atribuido a última variável
+
+o resultado obtido será uma base com o total de cada product */
+
+
+DATA WORK.VENDAS_PRODUTO (DROP = ACTUAL PREDICT); 
+	SET WORK.PRDSAL2_ORD;
+	BY PRODUCT;
+
+ 	IF FIRST.PRODUCT EQ 1 THEN DO
+ 		ACTUAL_SOMA = 0;
+ 		PREDICT_SOMA = 0;
+ 		END; 
+
+	RETAIN ACTUAL_SOMA PREDICT_SOMA;
+	ACTUAL_SOMA = SUM(ACTUAL_SOMA, ACTUAL);
+	PREDICT_SOMA = SUM(PREDICT_SOMA, PREDICT);
+	
+	IF LAST.PRODUCT EQ 1 THEN OUTPUT; 
+	
+RUN;
+
+/* Exercício - trazer o total de actual e predict por estado */
+
+PROC SORT DATA=SASHELP.PRDSAL2 (KEEP=STATE ACTUAL PREDICT) /*Ganho de performance - keep antes de processos */
+	OUT=WORK.PRDSAL2_EX1;
+	BY STATE;
+RUN; 
+
+DATA WORK.VENDAS_EX1 (DROP = ACTUAL PREDICT); 
+	SET WORK.PRDSAL2_EX1;
+	BY STATE;
+
+ 	IF FIRST.STATE EQ 1 THEN DO
+ 		ACTUAL_SOMA = 0;
+ 		PREDICT_SOMA = 0;
+ 		END; 
+
+	RETAIN ACTUAL_SOMA PREDICT_SOMA;
+	ACTUAL_SOMA = SUM(ACTUAL_SOMA, ACTUAL);
+	PREDICT_SOMA = SUM(PREDICT_SOMA, PREDICT);
+	
+	IF LAST.STATE EQ 1 THEN OUTPUT; 
+	
+RUN;
+
+
+
+/*UNIFICANDO DATASETS COM BASE EM UMA CHAVE - MERGE
+obrigatório usar o By para o merge. e devemos garantir que os datasets estão ordenados
+pela mesma variável para que não de erros.
+
+pode ter mais de 2 datasets e eles só podem ser feitos por uma chave igual em todos datasets.
+
+
+gerando uma base exemplo */ 
+
+data SALARY;
+INPUT empid name $ salary; 
+datalines;
+1 Rick 623.3
+2 Dan 512.2
+3 Mike 611.5
+4 Ryan 729.1
+5 Gary 843.25
+6 Tusar	578.6
+7 Igor	100.5
+8 jose  500.6
+;
+run; 
+
+data dept;
+	input empid dept $;
+	datalines;
+	1 IT
+	2 OPS
+	3 IT
+	4 HR
+	5 FIN
+	6 IT
+	7 OPS
+	8 FIN
+	;
+RUN; 
+
+/*total de salários pagos por departamento */
+
+proc sort data=salary;
+by empid;
+run;
+proc sort data=dept; 
+by empid; 
+run;
+
+data salary_total; 
+merge work.salary
+	  work.dept;
+	  by empid;
+	  run; 
+	  
+
+DATA
+	MERGE
+	BY
+RUN;
+
+
+
+ 
+/* boas práticas com variáveis ############################################# #############################################
  -> tamanho máximo de 32 caracteres 
  -> não pode iniciar por número e underscore e nem conter espaços
  -> utilizar o mesmo padrão para nomeclatura das bases
@@ -56,11 +249,11 @@ libname bases "/home/u61281657/bases";
 
 /* criando uma macro exemplo com uma variável no padrão em um diretório ficticio e depois usando ela como uma lib ficticia */ 
 %let dir_planilhas =/home/u61281657/Planilhas;
-%put &dir_planilhas.
+%put &dir_planilhas.;
 /*-----------------------------------------------------------------------------------------------------------------------------------------*;
 OTIMIZAÇÃO E PERFORMANCE 
 
-KEEP E DROP  entre parenteses para otimizar sempre */; 
+KEEP E DROP  entre parenteses para otimizar sempre */ 
 
 data work.YR_AIRLINES; 
 	set bases.airline
@@ -115,10 +308,170 @@ MERGE BASES.AIRLINE (IN = A)
 	  BY YEAR;
 	  IF A AND B; 
 	  RUN; 
-	  
+
+
+
 /*-----------------------------------------------------------------------------------------------------------------------------------------*;
-processo controlado */ 
+ESTRUTURAS DE LOOPS
+ 
+DO ########################################################################################################################################
+
+DO INTERATIVO
+
+	Primeira forma de se trabalhar com uma estrutura de loop que permite definir um intervalo  ou lista de valores que determina interações
+	
+	sintaxe básica
+	
+DO VARINDICE = valorinicial to valorfinal <by incremento>; 
+	<declarações SAS>
+end;
+
+outra forma de se trabalhar com loops EM DO podem ser atribuindo listas ao invés de faixas 
+
+	DO Varindice = item1 <, item-2, item-n>; 
+	<declarações SAS>
+	end;
+
+DO WHILE --------------------------------------------------------------------------------------------------------------------------------------
+
+DO WHILE significa que uma função será usada enquanto ela for verdadeira, se a função for falsa, ela não será mais executada. 
+
+Sintaxe:
+
+DO WHILE (Condição);
+		<declarações SAS>
+end; 
+
+DO UNTIL --------------------------------------------------------------------------------------------------------------------------------------
+
+DO UNTIL significa que uma sintaxe será executada até que se torne verdadeira 
+
+
+A verificação da condição acontece quando o SAS encontra o fim da estrutura de loop; desta forma as declarações que compõem as estruturas serão executadas
+pelo menos uma vez. 
+
+Sintaxe:
+
+DO UNTIL (Condição);
+		<declarações SAS>
+end; 
+
+*/ 
 	  
+
+/* entendendo o raciocínio acima criamos uma base exemplo e utilizamos  o do para criar uma evolucao dos preços conforme os meses*/
+
+DATA PRODUTOS;
+	INPUT PRODUTO CUSTO_UNITARIO TAXA_AUMENTO;
+	DATALINES; 
+1 10 0.02
+2 30 0.01
+3 35 0.012
+;
+RUN; 
+
+
+DATA ATUALIZACAO_PRECOS;
+	SET PRODUTOS;
+	LENGTH MES $ 12;
+	FORMAT CUSTO_ATUALIZADO DOLLARX12.2;
+	
+	CUSTO_ATUALIZADO = CUSTO_UNITARIO;
+/*	DO MES = 1 TO 3;   */
+	DO MES = "JANEIRO", "FEVEREIRO" , "MARCO"; 
+	CUSTO_ATUALIZADO = CUSTO_ATUALIZADO * (1 + TAXA_AUMENTO);
+	OUTPUT; 
+	
+END; 
+RUN; 
+
+
+/*-----------------------------------------------------------------------------------------------------------------------------------------*;
+ESTRUTURAS DE LOOPS
+ 
+ARRAY ########################################################################################################################################
+
+	Em diversas linguagens de programação arrays são estruturas de dados. no sas, porém, um array é uma forma conveniente de temporariamente identificar
+	um conjunto de varíaveis que precisamos acessar. 
+	
+	emntre as atividades que podemos realizar usando arrays podemos destacar; 
+	-> Cálculos Repetitivos
+	-> Criar viersas variáveis com as mesmas características;
+	-> Comparar dados 
+	-> Rotacionar Data sets transformando variáveis em observações ou observações em variáveis;  
+
+um sas array:
+
+-> é um nome que está associado a um conjunto de variáveis organizadas em uma ordem específica; 
+-> existe somente durante a execução do data step;
+-> não é uma variável, mas dá acess oas variáveis que estão associadas a ele (alias);
+
+
+
+a sintaxe do array é composta pelo seguinte:
+
+ARRAY NOMEARRAY {qtdelementos} <$>
+<tamanho>
+<elementosdoarray>
+<(valoresiniciais)>;
+
+onde;
+nomedoarray-> é um nome SAS Válido, que irá identificar nosso array. 
+qtd elementos -> número de elementos que estarão associados ao array. 
+
+
+Ainda trabalhando com a base atualizaçãoi de preços, supondo que agora desejamos atribuir uma evolução variável a cada 6 meses para os preços;
+
+
+_TEMPORARY_ armazena as variáveis no PDV  e não armazenam elas no dataset. 
+*/ 
+
+DATA ATUALIZACAO_PRECOS_EVOLUCAO; 
+	 SET PRODUTOS (RENAME=(CUSTO_UNITARIO=CUSTO_ATUALIZADO)
+	 			   DROP= TAXA_AUMENTO);
+	 
+	 
+	 ARRAY AUMENTO {6} _TEMPORARY_ (0.02, 0.025, 0.03, 0.022, 0.032, 0.04);  
+	 
+	 DO MES = 1 TO 6; /* agora o mês tem a variação acima */
+	 CUSTO_ATUALIZADO = CUSTO_ATUALIZADO * (1 + AUMENTO(MES));  /* O LINK ENTRE MES E A ARRAY DO MES É SOMADO A UM VALOR PERCENTUAL */
+	
+	 OUTPUT;
+END; 
+RUN; 
+
+/*Utilizando array com variáveis dadas em um dataset */ 
+
+DATA PRODUTOS_LOTE2;
+	INPUT PRODUTO CUSTO_UNITARIO TAXA_AUMENTO TAXA1 TAXA2 TAXA3;
+	DATALINES; 
+1 10 0.02 0.01 0.03 0.04
+2 30 0.01 0.02 0.023 0.03
+3 35 0.012 0.04 0.02 0.04
+;
+RUN; 
+
+	 
+
+DATA ATUALIZACAO_PRECOS_LOTE2; 
+	 SET PRODUTOS_LOTE2 (RENAME=(CUSTO_UNITARIO=CUSTO_ATUALIZADO)
+	 			   		 DROP= TAXA_AUMENTO);
+	 
+	 
+	 ARRAY AUMENTO {3} TAXA1 TAXA2 TAXA3;  
+	 
+	 DO MES = 1 TO 3; /* agora o mês tem a variação acima */
+	 CUSTO_ATUALIZADO = CUSTO_ATUALIZADO * (1 + AUMENTO(MES));  /* O LINK ENTRE MES E A ARRAY DO MES É SOMADO A UM VALOR PERCENTUAL */
+	
+	 OUTPUT;
+END; 
+RUN; 
+
+
+
+
+
+
 
 
 *-----------------------------------------------------------------------------------------------------------------------------------------*;
