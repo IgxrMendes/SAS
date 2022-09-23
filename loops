@@ -1,0 +1,155 @@
+/*-----------------------------------------------------------------------------------------------------------------------------------------*;
+ESTRUTURAS DE LOOPS
+ 
+DO ########################################################################################################################################
+
+DO INTERATIVO
+
+	Primeira forma de se trabalhar com uma estrutura de loop que permite definir um intervalo  ou lista de valores que determina interações
+	
+	sintaxe básica
+	
+DO VARINDICE = valorinicial to valorfinal <by incremento>; 
+	<declarações SAS>
+end;
+
+outra forma de se trabalhar com loops EM DO podem ser atribuindo listas ao invés de faixas 
+
+	DO Varindice = item1 <, item-2, item-n>; 
+	<declarações SAS>
+	end;
+
+DO WHILE --------------------------------------------------------------------------------------------------------------------------------------
+
+DO WHILE significa que uma função será usada enquanto ela for verdadeira, se a função for falsa, ela não será mais executada. 
+
+Sintaxe:
+
+DO WHILE (Condição);
+		<declarações SAS>
+end; 
+
+DO UNTIL --------------------------------------------------------------------------------------------------------------------------------------
+
+DO UNTIL significa que uma sintaxe será executada até que se torne verdadeira 
+
+
+A verificação da condição acontece quando o SAS encontra o fim da estrutura de loop; desta forma as declarações que compõem as estruturas serão executadas
+pelo menos uma vez. 
+
+Sintaxe:
+
+DO UNTIL (Condição);
+		<declarações SAS>
+end; 
+
+*/ 
+	  
+
+/* entendendo o raciocínio acima criamos uma base exemplo e utilizamos  o do para criar uma evolucao dos preços conforme os meses*/
+
+DATA PRODUTOS;
+	INPUT PRODUTO CUSTO_UNITARIO TAXA_AUMENTO;
+	DATALINES; 
+1 10 0.02
+2 30 0.01
+3 35 0.012
+;
+RUN; 
+
+
+DATA ATUALIZACAO_PRECOS;
+	SET PRODUTOS;
+	LENGTH MES $ 12;
+	FORMAT CUSTO_ATUALIZADO DOLLARX12.2;
+	
+	CUSTO_ATUALIZADO = CUSTO_UNITARIO;
+/*	DO MES = 1 TO 3;   */
+	DO MES = "JANEIRO", "FEVEREIRO" , "MARCO"; 
+	CUSTO_ATUALIZADO = CUSTO_ATUALIZADO * (1 + TAXA_AUMENTO);
+	OUTPUT; 
+	
+END; 
+RUN; 
+
+
+/*-----------------------------------------------------------------------------------------------------------------------------------------*;
+ESTRUTURAS DE LOOPS
+ 
+ARRAY ########################################################################################################################################
+
+	Em diversas linguagens de programação arrays são estruturas de dados. no sas, porém, um array é uma forma conveniente de temporariamente identificar
+	um conjunto de varíaveis que precisamos acessar. 
+	
+	emntre as atividades que podemos realizar usando arrays podemos destacar; 
+	-> Cálculos Repetitivos
+	-> Criar viersas variáveis com as mesmas características;
+	-> Comparar dados 
+	-> Rotacionar Data sets transformando variáveis em observações ou observações em variáveis;  
+
+um sas array:
+
+-> é um nome que está associado a um conjunto de variáveis organizadas em uma ordem específica; 
+-> existe somente durante a execução do data step;
+-> não é uma variável, mas dá acess oas variáveis que estão associadas a ele (alias);
+
+
+
+a sintaxe do array é composta pelo seguinte:
+
+ARRAY NOMEARRAY {qtdelementos} <$>
+<tamanho>
+<elementosdoarray>
+<(valoresiniciais)>;
+
+onde;
+nomedoarray-> é um nome SAS Válido, que irá identificar nosso array. 
+qtd elementos -> número de elementos que estarão associados ao array. 
+
+
+Ainda trabalhando com a base atualizaçãoi de preços, supondo que agora desejamos atribuir uma evolução variável a cada 6 meses para os preços;
+
+
+_TEMPORARY_ armazena as variáveis no PDV  e não armazenam elas no dataset. 
+*/ 
+
+DATA ATUALIZACAO_PRECOS_EVOLUCAO; 
+	 SET PRODUTOS (RENAME=(CUSTO_UNITARIO=CUSTO_ATUALIZADO)
+	 			   DROP= TAXA_AUMENTO);
+	 
+	 
+	 ARRAY AUMENTO {6} _TEMPORARY_ (0.02, 0.025, 0.03, 0.022, 0.032, 0.04);  
+	 
+	 DO MES = 1 TO 6; /* agora o mês tem a variação acima */
+	 CUSTO_ATUALIZADO = CUSTO_ATUALIZADO * (1 + AUMENTO(MES));  /* O LINK ENTRE MES E A ARRAY DO MES É SOMADO A UM VALOR PERCENTUAL */
+	
+	 OUTPUT;
+END; 
+RUN; 
+
+/*Utilizando array com variáveis dadas em um dataset */ 
+
+DATA PRODUTOS_LOTE2;
+	INPUT PRODUTO CUSTO_UNITARIO TAXA_AUMENTO TAXA1 TAXA2 TAXA3;
+	DATALINES; 
+1 10 0.02 0.01 0.03 0.04
+2 30 0.01 0.02 0.023 0.03
+3 35 0.012 0.04 0.02 0.04
+;
+RUN; 
+
+	 
+
+DATA ATUALIZACAO_PRECOS_LOTE2; 
+	 SET PRODUTOS_LOTE2 (RENAME=(CUSTO_UNITARIO=CUSTO_ATUALIZADO)
+	 			   		 DROP= TAXA_AUMENTO);
+	 
+	 
+	 ARRAY AUMENTO {3} TAXA1 TAXA2 TAXA3;  
+	 
+	 DO MES = 1 TO 3; /* agora o mês tem a variação acima */
+	 CUSTO_ATUALIZADO = CUSTO_ATUALIZADO * (1 + AUMENTO(MES));  /* O LINK ENTRE MES E A ARRAY DO MES É SOMADO A UM VALOR PERCENTUAL */
+	
+	 OUTPUT;
+END; 
+RUN; 
