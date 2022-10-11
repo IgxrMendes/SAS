@@ -1,0 +1,15 @@
+/* manda e-mail */
+
+FILENAME outbox EMAIL ("EMAIL 1" "EMAIL2");
+DATA _NULL_/
+FILE outbox cc = "email 1" "email 2" /* pessoas em cópia 
+FROM = "EMAIL QUE ENVIA"
+PUT; 
+PUT "MENSAGEM";
+PUT; 
+PUT "LINHA SEGUINTE"
+PUT ; 
+
+/***** DEMAIS PROCEDIMENTOS SAS ****/
+
+RUN; 
